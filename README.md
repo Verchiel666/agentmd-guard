@@ -8,18 +8,18 @@
 
 ## 安装
 
-> npm 包名 `agentmd-guard` 已占，但**尚未上架 registry**（发布账号的 2FA 在这台机器上配不了，需要一个勾了
-> Bypass 2FA 的一次性 granular token）。上架后 `npx agentmd-guard` 即可用；在那之前走下面任一种。
-
 ```sh
-# 方式 1：不装，直接跑（把仓库或 tarball 解开即可）
+# 最省事
+npx agentmd-guard scan
+
+# 或全局装
+npm i -g agentmd-guard
+
+# 或者不装，直接跑（把仓库或 tarball 解开即可）
 node bin/agentmd-guard.mjs scan
 
-# 方式 2：从 Releases 页下载 agentmd-guard-0.3.0.tgz，然后本地装
+# 或者用 Releases 里的 tarball 本地装
 npm i ./agentmd-guard-0.3.0.tgz
-
-# 方式 3：从源码目录装
-npm i /path/to/agentmd-guard-pkg
 ```
 
 注意：**不要用 `npm i https://github.com/.../x.tgz` 这种远程 URL**——npm 12 起默认拒绝
