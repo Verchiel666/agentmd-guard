@@ -6,14 +6,37 @@
 
 纯 Node（>=20）、零依赖、**全程只读**：只读文件，只写自己的基线与自测样本，不执行被扫内容里的任何东西。
 
+## 安装
+
+> npm 包名 `agentmd-guard` 已占，但**尚未上架 registry**（发布账号的 2FA 在这台机器上配不了，需要一个勾了
+> Bypass 2FA 的一次性 granular token）。上架后 `npx agentmd-guard` 即可用；在那之前走下面任一种。
+
 ```sh
-npx agentmd-guard scan        # 扫默认目录（家目录、DSH_HOME、Download）
-npx agentmd-guard scan ~/code # 只扫指定目录
-npx agentmd-guard check       # 关键 Agent 配置有没有被人动过（退出码 1 = 有漂移）
-npx agentmd-guard baseline --update   # 重建基线（确认无误后再做）
-npx agentmd-guard pins --online       # MCP / 工具服务有没有锁版本
-npx agentmd-guard selftest            # 8 组阳性/阴性对照，约 10ms
+# 方式 1：不装，直接跑（把仓库或 tarball 解开即可）
+node bin/agentmd-guard.mjs scan
+
+# 方式 2：从 Releases 页下载 agentmd-guard-0.2.0.tgz，然后本地装
+npm i ./agentmd-guard-0.2.0.tgz
+
+# 方式 3：从源码目录装
+npm i /path/to/agentmd-guard-pkg
 ```
+
+注意：**不要用 `npm i https://github.com/.../x.tgz` 这种远程 URL**——npm 12 起默认拒绝
+（`Fetching packages of type "remote" have been disabled`，本机实测），必须先下载到本地再装。
+
+## 用法
+
+```sh
+node bin/agentmd-guard.mjs scan          # 扫默认目录（家目录、DSH_HOME、Download）
+node bin/agentmd-guard.mjs scan ~/code   # 只扫指定目录
+node bin/agentmd-guard.mjs check         # 关键 Agent 配置有没有被人动过（退出码 1 = 有漂移）
+node bin/agentmd-guard.mjs baseline --update   # 重建基线（确认无误后再做）
+node bin/agentmd-guard.mjs pins --online       # MCP / 工具服务有没有锁版本
+node bin/agentmd-guard.mjs selftest            # 8 组阳性/阴性对照，约 10ms
+```
+
+`--json` 给机器读，`--verbose` 连 medium/low 一起列。
 
 ## 为什么有这个东西
 
