@@ -15,6 +15,7 @@ const HOME = process.env.HOME || '/data/user/0/io.github.jackwener.dsh/files/hom
 const DSH_HOME = process.env.DSH_HOME || '';
 const STATE_DIR = process.env.AGENTMD_GUARD_HOME || path.join(HOME, '.agentmd-guard');
 const BASELINE = path.join(STATE_DIR, 'baseline.json');
+const KNOWN_FILE = path.join(STATE_DIR, 'known-findings.json');
 const SHARED = '/storage/emulated/0';
 
 const SEV = { critical: 10, high: 5, medium: 2, low: 1, info: 0 };
@@ -189,7 +190,10 @@ const isExposed = (p) => /\/(?:Download|Downloads|Desktop|Documents|WeiXin|tence
 
 function scanFile(entry, opts) {
   const findings = [];
-  const push = (f) => findings.push({ file: entry.path, kind: entry.kind, line: 1, col: 1, excerpt: '', ...f });
+  const push = (f) => {
+    const raw = String(f.excerpt || f.note || '').replace(/\s+/g, ' ').trim().replace(/\d+/g, '#');
+    findings.push({ file: entry.path, kind: entry.kind, line: 1, col: 1, excerpt: '', ...f, fp: createHash('sha1').update(f.id + '|' + entry.path + '|' + raw).digest('hex').slice(0, 16) });
+  };
   const raw = fs.readFileSync(entry.path, 'utf8');
   const text = raw.slice(0, opts.maxBytes);
   const inv = scanInvisible(text);
@@ -252,6 +256,8 @@ function printReport(res, opts) {
   console.log(`\n=== agentmd-guard ===`);
   console.log(`扫描 ${files.length} 个文件（${Object.entries(kindCount).map(([k, v]) => `${k}:${v}`).join(' ') || '无'}）`);
   console.log(`评级 ${sum.verdict}   风险分 ${sum.score}   ` + SEV_ORDER.map(s => `${s}:${sum.by[s]}`).join('  '));
+  if (res.suppressed) console.log(`（已按已知问题基线 ${res.knownAt || ''} 折叠 ${res.suppressed} 条历史命中，只列新问题）`);
+  if (res.noKnown && opts.onlyNew) console.log('（没有已知问题基线，先跑 scan --save-known）');
   const shown = findings.filter(f => opts.verbose || f.sev !== 'info');
   if (!shown.length) console.log('无命中。');
   for (const f of shown) {
@@ -383,12 +389,14 @@ function cmdSelftest() {
 // ---------------------------------------------------------------- CLI
 const KNOWN = new Set(['scan', 'selftest', 'baseline', 'check', 'pins']);
 function parseArgs(args) {
-  const opts = { json: false, depth: 6, maxBytes: 1 << 20, verbose: false, update: false, online: false, roots: [] };
+  const opts = { json: false, depth: 6, maxBytes: 1 << 20, verbose: false, update: false, online: false, saveKnown: false, onlyNew: false, roots: [] };
   for (const a of args) {
     if (a === '--json') opts.json = true;
     else if (a === '--verbose') opts.verbose = true;
     else if (a === '--update') opts.update = true;
     else if (a === '--online') opts.online = true;
+    else if (a === '--save-known') opts.saveKnown = true;
+    else if (a === '--only-new') opts.onlyNew = true;
     else if (a.startsWith('--depth=')) opts.depth = Number(a.split('=')[1]);
     else if (a.startsWith('--max-bytes=')) opts.maxBytes = Number(a.split('=')[1]);
     else if (a.startsWith('-')) { console.error('未知参数 ' + a); process.exit(64); }
@@ -407,7 +415,9 @@ async function main() {
   if (cmd === 'check') process.exit(cmdCheck(opts.json));
   if (cmd === 'pins') process.exit(await cmdPins(opts));
   const roots = opts.roots.length ? opts.roots : [HOME, DSH_HOME, path.join(SHARED, 'Download')].filter(Boolean);
-  const res = scanRoots(roots, opts);
+  let res = scanRoots(roots, opts);
+  if (opts.saveKnown) console.log(`已知问题基线已写入 ${KNOWN_FILE}：${saveKnown(res.findings, res.files.length)} 条（${res.files.length} 个文件）`);
+  if (opts.onlyNew) res = applyKnown(res);
   const sum = printReport(res, opts);
   if (!opts.json) console.error(`用时 ${Date.now() - t0}ms`);
   process.exit(sum.verdict === 'BLOCK' ? 2 : sum.verdict === 'WARN' ? 1 : 0);
@@ -543,6 +553,23 @@ async function latestOf(name) {
     const j = await r.json();
     return (j['dist-tags'] && j['dist-tags'].latest) || null;
   } catch { return null; }
+}
+
+function loadKnown() {
+  try { return JSON.parse(fs.readFileSync(KNOWN_FILE, 'utf8')); } catch { return null; }
+}
+function saveKnown(findings, scanned) {
+  const known = {};
+  for (const f of findings) known[f.fp || 'x'] = { id: f.id, sev: f.sev, file: f.file, excerpt: (f.excerpt || f.note || '').slice(0, 120) };
+  fs.mkdirSync(STATE_DIR, { recursive: true });
+  fs.writeFileSync(KNOWN_FILE, JSON.stringify({ generatedAt: new Date().toISOString(), scanned, count: Object.keys(known).length, known }, null, 1));
+  return Object.keys(known).length;
+}
+function applyKnown(res) {
+  const k = loadKnown();
+  if (!k) return { ...res, suppressed: 0, noKnown: true };
+  const fresh = res.findings.filter(f => !k.known[f.fp]);
+  return { ...res, findings: fresh, suppressed: res.findings.length - fresh.length, knownAt: k.generatedAt };
 }
 
 async function cmdPins(opts) {

@@ -1,15 +1,39 @@
 {
   "name": "agentmd-guard",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "扫 AGENTS.md / CLAUDE.md 这类「会被 Agent 自动当指令读进来」的文件：不可见字符、危险指令语义、配置漂移、MCP 版本 pin。纯 Node、零依赖、只读。",
   "type": "module",
-  "bin": { "agentmd-guard": "bin/agentmd-guard.mjs" },
-  "files": ["bin/", "README.md", "LICENSE"],
-  "engines": { "node": ">=20" },
-  "scripts": { "test": "node bin/agentmd-guard.mjs selftest" },
-  "keywords": ["agents.md", "claude.md", "prompt-injection", "ai-security", "coding-agent", "mcp", "supply-chain", "unicode", "zero-width", "security-scanner"],
+  "bin": {
+    "agentmd-guard": "bin/agentmd-guard.mjs"
+  },
+  "files": [
+    "bin/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node bin/agentmd-guard.mjs selftest"
+  },
+  "keywords": [
+    "agents.md",
+    "claude.md",
+    "prompt-injection",
+    "ai-security",
+    "coding-agent",
+    "mcp",
+    "supply-chain",
+    "unicode",
+    "zero-width",
+    "security-scanner"
+  ],
   "license": "MIT",
   "author": "Verchiel666",
-  "repository": { "type": "git", "url": "git+https://github.com/Verchiel666/agentmd-guard.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Verchiel666/agentmd-guard.git"
+  },
   "homepage": "https://github.com/Verchiel666/agentmd-guard"
 }

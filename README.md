@@ -15,8 +15,8 @@
 # 方式 1：不装，直接跑（把仓库或 tarball 解开即可）
 node bin/agentmd-guard.mjs scan
 
-# 方式 2：从 Releases 页下载 agentmd-guard-0.2.0.tgz，然后本地装
-npm i ./agentmd-guard-0.2.0.tgz
+# 方式 2：从 Releases 页下载 agentmd-guard-0.3.0.tgz，然后本地装
+npm i ./agentmd-guard-0.3.0.tgz
 
 # 方式 3：从源码目录装
 npm i /path/to/agentmd-guard-pkg
@@ -34,6 +34,8 @@ node bin/agentmd-guard.mjs check         # 关键 Agent 配置有没有被人动
 node bin/agentmd-guard.mjs baseline --update   # 重建基线（确认无误后再做）
 node bin/agentmd-guard.mjs pins --online       # MCP / 工具服务有没有锁版本
 node bin/agentmd-guard.mjs selftest            # 8 组阳性/阴性对照，约 10ms
+node bin/agentmd-guard.mjs scan --save-known   # 把当前命中记成「已知」，之后不再重复报
+node bin/agentmd-guard.mjs scan --only-new     # 只报基线之后新出现的命中（巡检用这个）
 ```
 
 `--json` 给机器读，`--verbose` 连 medium/low 一起列。
@@ -67,6 +69,9 @@ node bin/agentmd-guard.mjs selftest            # 8 组阳性/阴性对照，约 
   `2.0.1` 高，包管理器永远不提示升级，必须显式装（MCP 官方 servers v2.1.0 修 8 个洞时踩的就是这个坑）
 
 ## 输出与退出码
+
+`scan --only-new` 配合 `--save-known`：把「已确认无害的历史命中」记进基线，之后只报**新出现**的——
+否则一堆自家文档里的危险命令会每天重复刷屏（本机实测：164 文件 / 82 条历史命中，折叠后 0 条新问题）。
 
 `scan`：`OK` / `WARN` / `BLOCK`，风险分按 critical 10 / high 5 / medium 2 / low 1 计；退出码 0 / 1 / 2。
 `check`：有漂移退出码 1。`--json` 给机器读。`--verbose` 连 medium/low 一起列。
